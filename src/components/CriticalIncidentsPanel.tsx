@@ -114,6 +114,22 @@ export function CriticalIncidentsPanel() {
     }
   };
 
+  // Add missing function
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'critical':
+        return 'text-red-400 bg-red-900/30 border-red-700/50';
+      case 'high':
+        return 'text-orange-400 bg-orange-900/30 border-orange-700/50';
+      case 'medium':
+        return 'text-yellow-400 bg-yellow-900/30 border-yellow-700/50';
+      case 'low':
+        return 'text-blue-400 bg-blue-900/30 border-blue-700/50';
+      default:
+        return 'text-gray-400 bg-gray-900/30 border-gray-700/50';
+    }
+  };
+
   const formatTimestamp = (timestamp: string) => {
     try {
       return new Date(timestamp).toLocaleString();

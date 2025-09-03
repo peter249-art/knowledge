@@ -127,28 +127,28 @@ export function ThreatDetectionPanel({ threatDetections, anomalies }: ThreatDete
         <div className="space-y-3">
           <h3 className="text-lg font-semibold text-white">Recent Threat Detections</h3>
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {threatDetections.slice(0, 8).map((threat) => (
+            {safeThreatDetections.slice(0, 8).map((threat) => (
               <div key={threat.id} className="bg-gray-900 rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center space-x-3">
                     {getThreatTypeIcon(threat.threatType)}
                     <div>
-                      <div className="text-white text-sm font-medium">{threat.description}</div>
+                      <div className="text-white text-sm font-medium">{threat.description || 'No description'}</div>
                       <div className="text-gray-400 text-xs mt-1">
-                        {threat.timestamp.toLocaleString()}
+                        {threat.timestamp ? threat.timestamp.toLocaleString() : 'Unknown time'}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className={`text-sm font-medium ${getConfidenceColor(threat.confidence)}`}>
-                      {threat.confidence}% confidence
+                      {threat.confidence || 0}% confidence
                     </div>
-                    <div className="text-xs text-gray-400">Risk: {threat.riskScore}</div>
+                    <div className="text-xs text-gray-400">Risk: {threat.riskScore || 0}</div>
                   </div>
                 </div>
                 
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {threat.mitreTactics.map((tactic, index) => (
+                  {(threat.mitreTactics || []).map((tactic, index) => (
                     <span
                       key={index}
                       className="text-xs px-2 py-1 bg-red-900/50 text-red-300 rounded"
@@ -158,7 +158,7 @@ export function ThreatDetectionPanel({ threatDetections, anomalies }: ThreatDete
                   ))}
                 </div>
                 
-                {threat.indicators.length > 0 && (
+                {threat.indicators && threat.indicators.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-gray-700">
                     <p className="text-xs text-gray-400 mb-1">Indicators:</p>
                     <div className="flex flex-wrap gap-1">
@@ -178,7 +178,7 @@ export function ThreatDetectionPanel({ threatDetections, anomalies }: ThreatDete
                 {backendConnected && (
                   <div className="mt-2 pt-2 border-t border-gray-700">
                     <button
-                      onClick={() => blockIP(threat.affectedAssets[0] || 'unknown')}
+                      onClick={() => blockIP((threat.affectedAssets && threat.affectedAssets[0]) || 'unknown')}
                       className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded mr-2"
                     >
                       Block IP
@@ -201,32 +201,32 @@ export function ThreatDetectionPanel({ threatDetections, anomalies }: ThreatDete
         </div>
 
         <div className="space-y-3">
-          {anomalies.slice(0, 6).map((anomaly) => (
+          {safeAnomalies.slice(0, 6).map((anomaly) => (
             <div key={anomaly.id} className="bg-gray-900 rounded-lg p-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${getAnomalyColor(anomaly.severity)}`}>
-                      {anomaly.severity.toUpperCase()}
+                      {anomaly.severity?.toUpperCase() || 'UNKNOWN'}
                     </span>
                     <span className="text-gray-400 text-xs">
-                      {anomaly.anomalyType.replace('_', ' ').toUpperCase()}
+                      {anomaly.anomalyType?.replace('_', ' ').toUpperCase() || 'UNKNOWN'}
                     </span>
                   </div>
-                  <p className="text-white text-sm font-medium">{anomaly.description}</p>
+                  <p className="text-white text-sm font-medium">{anomaly.description || 'No description'}</p>
                   <div className="flex items-center space-x-4 mt-2 text-xs text-gray-400">
-                    <span>Source: {anomaly.source}</span>
-                    <span>Baseline: {anomaly.baseline}</span>
-                    <span>Observed: {anomaly.observed}</span>
-                    <span className="text-red-400">+{anomaly.deviation}%</span>
+                    <span>Source: {anomaly.source || 'Unknown'}</span>
+                    <span>Baseline: {anomaly.baseline || 0}</span>
+                    <span>Observed: {anomaly.observed || 0}</span>
+                    <span className="text-red-400">+{anomaly.deviation || 0}%</span>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-medium text-red-400">
-                    {anomaly.deviation}% deviation
+                    {anomaly.deviation || 0}% deviation
                   </div>
                   <div className="text-xs text-gray-400">
-                    {anomaly.timestamp.toLocaleTimeString()}
+                    {anomaly.timestamp ? anomaly.timestamp.toLocaleTimeString() : 'Unknown time'}
                   </div>
                 </div>
               </div>

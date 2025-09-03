@@ -128,7 +128,7 @@ export function AlertPanel({ alerts }: AlertPanelProps) {
                 </div>
                 {!alert.acknowledged && (
                   <button
-                    onClick={() => acknowledgeAlert(alert.id)}
+                    {displayAlerts.filter(a => a.type === 'error').length}
                     className="text-gray-400 hover:text-white transition-colors text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600"
                   >
                     Ack
