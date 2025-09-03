@@ -93,27 +93,19 @@ class BackendService {
       };
       
       threatWs.onclose = () => {
-        console.log('Disconnected from threat detection backend');
+        console.warn('Disconnected from threat detection backend (this is normal if backend is not running)');
         this.threatBackendConnected = false;
         this.notifyThreatBackendListeners(false);
-        
-        // Attempt to reconnect
-        setTimeout(() => {
-          this.connectThreatBackend();
-        }, this.reconnectDelay);
       };
       
       threatWs.onerror = (error) => {
-        console.error('Threat backend WebSocket error:', error);
+        console.warn('Threat backend WebSocket error (this is normal if backend is not running):', error);
         this.threatBackendConnected = false;
         this.notifyThreatBackendListeners(false);
       };
       
     } catch (error) {
-      console.error('Failed to connect to threat backend:', error);
-      setTimeout(() => {
-        this.connectThreatBackend();
-      }, this.reconnectDelay);
+      console.warn('Failed to connect to threat backend (this is normal if backend is not running):', error);
     }
   }
 

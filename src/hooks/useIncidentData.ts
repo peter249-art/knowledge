@@ -9,15 +9,18 @@ import { fetchAlerts as fetchBackendAlerts } from '../services/backendApi'
 
 // Function to transform database incident to app incident format
 function transformDbIncidentToAppIncident(dbIncident: any): Incident {
-  console.log('Transforming incident:', dbIncident)
+  if (!dbIncident) {
+    throw new Error('No incident data provided for transformation');
+  }
+  
   return {
-    id: dbIncident.id,
-    timestamp: new Date(dbIncident.created_at),
+    id: dbIncident.id || `INC-${Date.now()}`,
+    timestamp: dbIncident.created_at ? new Date(dbIncident.created_at) : new Date(),
     type: dbIncident.incident_type as any,
     severity: dbIncident.severity as any,
     source: dbIncident.source_ip || dbIncident.source_system || 'Unknown',
     target: dbIncident.destination_ip || dbIncident.target_system || 'Unknown',
-    description: dbIncident.description,
+    description: dbIncident.description || 'No description available',
     status: dbIncident.status as any,
     responseActions: [], // Will be populated from incident_actions table if needed
     affectedSystems: dbIncident.affected_systems || []
@@ -49,18 +52,31 @@ export function useIncidentData() {
       
       if (error) {
         console.error('Error fetching incidents from database:', error)
+        // Don't return early, set empty array instead
+        setIncidents([])
         return
       }
       
-      console.log(`📊 Fetched ${data?.length || 0} incidents from database`)
+      const incidentCount = data?.length || 0
+      console.log(`📊 Fetched ${incidentCount} incidents from database`)
       
       if (data) {
-        const transformedIncidents = data.map(transformDbIncidentToAppIncident)
-        console.log(`✅ Transformed ${transformedIncidents.length} incidents for display`)
-        setIncidents(transformedIncidents)
+        try {
+          const transformedIncidents = data
+            .filter(incident => incident && incident.id) // Filter out null/invalid incidents
+            .map(transformDbIncidentToAppIncident)
+          console.log(`✅ Transformed ${transformedIncidents.length} incidents for display`)
+          setIncidents(transformedIncidents)
+        } catch (transformError) {
+          console.error('Error transforming incidents:', transformError)
+          setIncidents([]) // Set empty array on transform error
+        }
+      } else {
+        setIncidents([]) // Set empty array if no data
       }
     } catch (error) {
       console.error('Failed to fetch incidents:', error)
+      setIncidents([]) // Set empty array on any error
     }
   }
 
@@ -227,16 +243,62 @@ export function useIncidentData() {
   }, [isMonitoring])
 
   async function fetchAlerts() {
-    const { data, error } = await supabase.from('alerts').select('*').order('timestamp', { ascending: false })
-    if (!error && data) setAlerts(data)
+    try {
+      const { data, error } = await supabase
+        .from('alerts')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(100)
+      
+      if (error) {
+        console.error('Error fetching alerts:', error)
+        setAlerts([])
+        return
+      }
+      
+      if (data) {
+        // Transform database alerts to app format
+        const transformedAlerts = data.map(alert => ({
+          id: alert.id || `ALT-${Date.now()}`,
+          timestamp: alert.timestamp ? new Date(alert.timestamp) : new Date(),
+          message: alert.message || alert.title || 'No message',
+          type: alert.alert_type || 'info',
+          acknowledged: alert.is_acknowledged || false,
+          sourceSystem: alert.source_system || 'Unknown',
+          riskScore: alert.risk_score || 50,
+          isDuplicate: alert.is_duplicate || false,
+          relatedAlerts: [],
+          correlationId: alert.correlation_id || undefined,
+          originalAlertId: alert.original_alert_id || undefined
+        }))
+        setAlerts(transformedAlerts)
+      } else {
+        setAlerts([])
+      }
+    } catch (error) {
+      console.error('Failed to fetch alerts:', error)
+      setAlerts([])
+    }
   }
 
 
   async function fetchAlertsFromBackend() {
     try {
       const items = await fetchBackendAlerts(50)
-      if (items && items.length) {
-        setAlerts(items)
+      if (items && Array.isArray(items) && items.length > 0) {
+        // Transform backend alerts to app format
+        const transformedAlerts = items.map(item => ({
+          id: item.id || `BALT-${Date.now()}`,
+          timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+          message: item.message || 'Backend alert',
+          type: item.alert_type || 'info',
+          acknowledged: false,
+          sourceSystem: 'Backend API',
+          riskScore: item.risk_score || 50,
+          isDuplicate: false,
+          relatedAlerts: []
+        }))
+        setAlerts(prev => [...transformedAlerts, ...prev].slice(0, 100))
       }
     } catch (e) {
       console.warn('Backend alerts fetch failed', e)

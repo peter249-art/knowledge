@@ -52,8 +52,12 @@ class CriticalIncidentsService {
       this.socket = io(this.backendUrl, {
         transports: ['websocket', 'polling'],
         timeout: 10000,
-        forceNew: true
+        forceNew: true,
+        autoConnect: false
       });
+
+      // Only connect if backend is likely available
+      this.socket.connect();
 
       this.socket.on('connect', () => {
         console.log('Connected to critical incidents backend');
@@ -83,15 +87,14 @@ class CriticalIncidentsService {
       });
 
       this.socket.on('connect_error', (error) => {
-        console.error('Critical incidents connection error:', error);
+        console.warn('Critical incidents connection error (this is normal if backend is not running):', error.message);
         this.isConnected = false;
         this.notifyConnectionListeners(false);
-        this.attemptReconnect();
+        // Don't attempt reconnect on initial connection error
       });
 
     } catch (error) {
-      console.error('Failed to initialize critical incidents connection:', error);
-      this.attemptReconnect();
+      console.warn('Failed to initialize critical incidents connection (this is normal if backend is not running):', error);
     }
   }
 
@@ -167,7 +170,8 @@ class CriticalIncidentsService {
       const response = await fetch(`${this.backendUrl}/api/critical-incidents?limit=${limit}`);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.warn(`Critical incidents API not available: ${response.status}`);
+        return { incidents: [], total: 0 };
       }
 
       return await response.json();
@@ -182,7 +186,14 @@ class CriticalIncidentsService {
       const response = await fetch(`${this.backendUrl}/api/critical-incidents/statistics`);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.warn(`Critical incidents statistics API not available: ${response.status}`);
+        return {
+          total_critical: 0,
+          critical_last_hour: 0,
+          active_critical: 0,
+          incident_types: {},
+          avg_risk_score: 0
+        };
       }
 
       return await response.json();

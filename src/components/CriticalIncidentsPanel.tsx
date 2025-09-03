@@ -115,7 +115,11 @@ export function CriticalIncidentsPanel() {
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString();
+    try {
+      return new Date(timestamp).toLocaleString();
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   return (
